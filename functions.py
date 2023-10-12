@@ -41,7 +41,7 @@ from langchain.llms import OpenAI
 from langchain.chains import LLMChain, SequentialChain
 from dotenv import load_dotenv, find_dotenv
 from langchain.prompts import ChatPromptTemplate
-from langchain.prompts import PromptTemplate, LLMChain
+from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.output_parsers import ResponseSchema
 from langchain.output_parsers import StructuredOutputParser
