@@ -70,8 +70,8 @@ def draft_email(user_input):
     from langchain.text_splitter import RecursiveCharacterTextSplitter
 
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=5000,
-        chunk_overlap=250,
+        chunk_size=400,
+        chunk_overlap=2,
     )
 
     docs = text_splitter.split_documents(docs)
@@ -129,7 +129,7 @@ def draft_email(user_input):
                                      combine_prompt=combine_prompt_template, verbose=True
                                     )
 
-    response = summary_chain.run({"text": docs})
+    response = summary_chain.run({"input_documents": docs})
 
     return response
 
