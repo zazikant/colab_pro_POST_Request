@@ -47,7 +47,6 @@ from langchain.output_parsers import ResponseSchema
 from langchain.output_parsers import StructuredOutputParser
 from langchain.memory import ConversationSummaryBufferMemory
 
-from langchain.docstore.document import Document
 from langchain.chains.summarize import load_summarize_chain
 
 
@@ -110,19 +109,19 @@ def draft_email(user_input):
     # """    
     map_prompt = """
     Write a concise summary of the following:
-    "{context}"
+    "{text}"
     CONCISE SUMMARY:
     """
     
-    map_prompt_template = PromptTemplate(template=map_prompt, input_variables=["context"])
+    map_prompt_template = PromptTemplate(template=map_prompt, input_variables=["text"])
     
     combine_prompt = """
     You are a summarisation expert. Focus on maintaining a coherent flow and using proper grammar and language. Write a detailed summary of the following text:
-    "{context}"
+    "{text}"
     SUMMARY:
     """
     
-    combine_prompt_template = PromptTemplate(template=combine_prompt, input_variables=["context"])
+    combine_prompt_template = PromptTemplate(template=combine_prompt, input_variables=["text"])
     
     summary_chain = load_summarize_chain(llm=llm,
                                      chain_type='map_reduce',
@@ -130,7 +129,7 @@ def draft_email(user_input):
                                      combine_prompt=combine_prompt_template, verbose=True
                                     )
 
-    response = summary_chain.run({"context": docs})
+    response = summary_chain.run({"text": docs})
 
     return response
 
