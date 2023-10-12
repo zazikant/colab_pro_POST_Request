@@ -17,3 +17,5 @@ langchain
 pypdf
 pandas==1.5.3
 pandasai==1.1
+tiktoken
+faiss-cpu

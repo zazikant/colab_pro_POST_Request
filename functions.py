@@ -31,48 +31,106 @@ import pandas as pd
 from pandasai import SmartDataframe
 from pandasai.llm import OpenAI
 
-    
+from langchain.document_loaders import PyPDFLoader
+
+from dotenv import load_dotenv
+
+import os
+import openai
+from langchain.llms import OpenAI
+from langchain.chains import LLMChain, SequentialChain
+from dotenv import load_dotenv, find_dotenv
+from langchain.prompts import ChatPromptTemplate
+from langchain.prompts import PromptTemplate, LLMChain
+from langchain.chat_models import ChatOpenAI
+from langchain.output_parsers import ResponseSchema
+from langchain.output_parsers import StructuredOutputParser
+from langchain.memory import ConversationSummaryBufferMemory
+
+from langchain.docstore.document import Document
+from langchain.chains.summarize import load_summarize_chain
+
+
+# Laden Sie die Umgebungsvariablen aus der .env-Datei
+load_dotenv()
+API_KEY = os.environ.get("API_KEY")
+HUGGINGFACEHUB_API_TOKEN = os.environ["HUGGINGFACEHUB_API_TOKEN"]
+openai.api_key = os.environ["OPENAI_API_KEY"]
+
 def draft_email(user_input):
-    # Define the API endpoint URL and parameters
-    url = "http://13.232.224.37:8080/aurum/rest/v1/location/db/findall"
-    params = {
-        "project_id": 1,
-        "user_id": 640,
-        "token": "7efbfacb7556e57d0702",
-        "page_size": 7
-    }
 
-    llm = OpenAI()
+    from langchain.document_loaders import DirectoryLoader, CSVLoader
 
-    # # Make a GET request for each page and extract the desired fields
-    locations = []
-    for page_num in range(1, 4):
-        params["page_num"] = page_num
-        response = requests.get(url, params=params)
-        data = response.json()
-        for record in data["records"]:
-            location = {
-                "location_id": record["location_id"],
-                "location_name": record["location_name"]
-            }
-            locations.append(location)
+    loader = DirectoryLoader(
+        "./shashi", glob="**/*.csv", loader_cls=CSVLoader, show_progress=True
+    )
+    docs = loader.load()
+
+    #textsplitter-----------------
+
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=5000,
+        chunk_overlap=250,
+    )
+
+    docs = text_splitter.split_documents(docs)
+    # print(docs[3].page_content)
+    #-----------------
+
+    from langchain.embeddings import OpenAIEmbeddings
+    openai_embeddings = OpenAIEmbeddings()
+
+    from langchain.vectorstores.faiss import FAISS
+    import pickle
+
+    #Very important - db below is used for similarity search and not been used by agents in tools
+
+    db = FAISS.from_documents(docs, openai_embeddings)
+    
+    import pickle
+
+    with open("db.pkl", "wb") as f:
+        pickle.dump(db, f)
+        
+    with open("db.pkl", "rb") as f:
+        db = pickle.load(f)
+        
+    query = user_input
+    docs = db.similarity_search(query, k=8)
+
+    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
 
 
-    # # Write the locations to a CSV file
-    with open("./shashi/locations.csv", "w", newline="") as csvfile:
-        fieldnames = ["location_id", "location_name"]
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for location in locations:
-            writer.writerow(location)
-            
-    df = pd.read_csv("./shashi/locations.csv")
+    # template = """
+    # you are a pediatric dentist and you are writing a key features serial wise for following information: 
 
-    sdf = SmartDataframe(df, config={"llm": llm})
+    # text: {context}
+    # """    
+    map_prompt = """
+    Write a concise summary of the following:
+    "{context}"
+    CONCISE SUMMARY:
+    """
+    
+    map_prompt_template = PromptTemplate(template=map_prompt, input_variables=["context"])
+    
+    combine_prompt = """
+    You are a summarisation expert. Focus on maintaining a coherent flow and using proper grammar and language. Write a detailed summary of the following text:
+    "{context}"
+    SUMMARY:
+    """
+    
+    combine_prompt_template = PromptTemplate(template=combine_prompt, input_variables=["context"])
+    
+    summary_chain = load_summarize_chain(llm=llm,
+                                     chain_type='map_reduce',
+                                     map_prompt=map_prompt_template,
+                                     combine_prompt=combine_prompt_template, verbose=True
+                                    )
 
-    sdf.chat(user_input)        
-
-    response = sdf.last_code_generated.__str__()
+    response = summary_chain.run({"context": docs})
 
     return response
 
@@ -89,5 +147,3 @@ def extract_email(user_input):
         return email
     
     return None
-
-
