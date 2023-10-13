@@ -174,10 +174,3 @@ def draft_email(output_dict):
     response = summary_chain.run({"input_documents": docs})
 
     return response
-
-
-def extract_email(output_dict):
-   
-    email = output_dict['email_parser']
-    
-    return email
