@@ -4,7 +4,7 @@ from slack_sdk.errors import SlackApiError
 from slack_bolt.adapter.flask import SlackRequestHandler
 from slack_bolt import App
 from dotenv import find_dotenv, load_dotenv
-from functions import parser, draft_email
+from functions import draft_email
 import requests
 import json
 import time
@@ -93,12 +93,8 @@ def handle_mentions(body, say):
     say("Sure, I'll get right on that!")
     # response = my_function(text)
     
-     # Extract the email from the text
-    data = parser(text)
-    
-    email = data["email_parser"]
-    
-    response = draft_email(data["content"])
+    # Extract the email from the text
+    email, response = draft_email(text)
     
     # Make the POST request
     url = "https://hook.us1.make.com/ohyonocw701n4ynie637qcm3roe3yrhn"

@@ -44,6 +44,9 @@ from langchain.memory import ConversationSummaryBufferMemory
 
 from langchain.chains.summarize import load_summarize_chain
 
+from langchain.document_loaders import DirectoryLoader, CSVLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
 
 # Laden Sie die Umgebungsvariablen aus der .env-Datei
 load_dotenv()
@@ -51,11 +54,11 @@ load_dotenv()
 from langchain.prompts import ChatPromptTemplate
 from langchain import PromptTemplate, LLMChain
 
-def parser(user_input):
+def parser(text):
  
     llm = OpenAI()
 
-    context = user_input.strip()
+    context = text.strip()
 
     email_schema = ResponseSchema(
         name="email_parser",
@@ -69,8 +72,6 @@ def parser(user_input):
 
     parser = StructuredOutputParser.from_response_schemas(response_schemas)
     format_instructions = parser.get_format_instructions()
-    format_instructions
-
 
     template = """
     Interprete the text and evaluate the text.
@@ -93,14 +94,11 @@ def parser(user_input):
 
     chain = LLMChain(llm=llm, prompt=prompt, output_key= "testi")
     response = chain.run({"context": context, "format_instructions": format_instructions})
-    response
 
     output_dict = parser.parse(response)
     return output_dict
 
-def draft_email(output_dict):
-
-    from langchain.document_loaders import DirectoryLoader, CSVLoader
+def draft_email(user_input):    
 
     loader = DirectoryLoader(
         "./shashi", glob="**/*.csv", loader_cls=CSVLoader, show_progress=True
@@ -108,8 +106,6 @@ def draft_email(output_dict):
     docs = loader.load()
 
     #textsplitter-----------------
-
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
 
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=400,
@@ -137,9 +133,14 @@ def draft_email(output_dict):
         
     with open("db.pkl", "rb") as f:
         db = pickle.load(f)
-        
-    query = output_dict['content']
-    docs = db.similarity_search(query, k=8)
+    
+    parser_output = parser(user_input)
+    
+    email = parser_output["email_parser"]
+    
+    content = parser_output["content"]
+    
+    docs = db.similarity_search(content, k=8)
 
     llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
 
@@ -173,4 +174,4 @@ def draft_email(output_dict):
 
     response = summary_chain.run({"input_documents": docs})
 
-    return response
+    return email, response
