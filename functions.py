@@ -1,5 +1,3 @@
-from langchain.chat_models import ChatOpenAI
-from langchain.chains import LLMChain
 from dotenv import find_dotenv, load_dotenv
 from langchain.prompts.chat import (
     ChatPromptTemplate,
@@ -38,10 +36,7 @@ from dotenv import load_dotenv
 import os
 import openai
 from langchain.llms import OpenAI
-from langchain.chains import LLMChain, SequentialChain
 from dotenv import load_dotenv, find_dotenv
-from langchain.prompts import ChatPromptTemplate
-from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.output_parsers import ResponseSchema
 from langchain.output_parsers import StructuredOutputParser
@@ -52,11 +47,58 @@ from langchain.chains.summarize import load_summarize_chain
 
 # Laden Sie die Umgebungsvariablen aus der .env-Datei
 load_dotenv()
-API_KEY = os.environ.get("API_KEY")
-HUGGINGFACEHUB_API_TOKEN = os.environ["HUGGINGFACEHUB_API_TOKEN"]
-openai.api_key = os.environ["OPENAI_API_KEY"]
 
-def draft_email(user_input):
+from langchain.prompts import ChatPromptTemplate
+from langchain import PromptTemplate, LLMChain
+
+def parser(user_input):
+ 
+    llm = OpenAI()
+
+    context = user_input.strip()
+
+    email_schema = ResponseSchema(
+        name="email_parser",
+        description="extract the email id from the text. If required, strip and correct it in format like sample@xyz.com. Only provide these words. If no email id is present, return null@null.com",
+    )
+    subject_schema = ResponseSchema(
+        name="content", description="Just extract the content removing email ids. Do not add any interpretation."
+    )
+
+    response_schemas = [email_schema, subject_schema]
+
+    parser = StructuredOutputParser.from_response_schemas(response_schemas)
+    format_instructions = parser.get_format_instructions()
+    format_instructions
+
+
+    template = """
+    Interprete the text and evaluate the text.
+    email_parser: extract the email id from the text. Only provide these words. If no email id is present, return null@null.com. Use 1 line.
+    content: Just extract the content removing email ids. Do not add any interpretation.
+
+    text: {context}
+
+    Just return the JSON, do not add ANYTHING, NO INTERPRETATION!
+    {format_instructions}:"""
+
+    #imprtant to have the format instructions in the template represented as {format_instructions}:"""
+
+    #very important to note that the format instructions is the json format that consists of the output key and value pair. It could be multiple key value pairs. All the context with input variables should be written above that in the template.
+
+    prompt  = PromptTemplate(
+        input_variables=["context", "format_instructions"],
+        template=template
+    )
+
+    chain = LLMChain(llm=llm, prompt=prompt, output_key= "testi")
+    response = chain.run({"context": context, "format_instructions": format_instructions})
+    response
+
+    output_dict = parser.parse(response)
+    return output_dict
+
+def draft_email(output_dict):
 
     from langchain.document_loaders import DirectoryLoader, CSVLoader
 
@@ -96,7 +138,7 @@ def draft_email(user_input):
     with open("db.pkl", "rb") as f:
         db = pickle.load(f)
         
-    query = user_input
+    query = output_dict['content']
     docs = db.similarity_search(query, k=8)
 
     llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
@@ -134,15 +176,8 @@ def draft_email(user_input):
     return response
 
 
-def extract_email(user_input):
-    # Regular expression pattern to match email addresses
-    email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+def extract_email(output_dict):
+   
+    email = output_dict['email_parser']
     
-    # Search for email pattern in the user input
-    match = re.search(email_pattern, user_input)
-    
-    if match:
-        email = match.group(0)  # Extract the email address
-        return email
-    
-    return None
+    return email
