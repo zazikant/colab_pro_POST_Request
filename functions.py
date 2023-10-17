@@ -169,8 +169,7 @@ def draft_email(user_input):
     summary_chain = load_summarize_chain(llm=llm,
                                      chain_type='map_reduce',
                                      map_prompt=map_prompt_template,
-                                     combine_prompt=combine_prompt_template, verbose=True
-                                    )
+                                     combine_prompt=combine_prompt_template)
 
     response = summary_chain.run({"input_documents": docs})
 

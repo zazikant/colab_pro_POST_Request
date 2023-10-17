@@ -35,15 +35,15 @@ flask_app = Flask(__name__)
 run_with_ngrok(flask_app)
 handler = SlackRequestHandler(app)
 
-# Define a function to keep Colab active
-def keep_colab_active():
-    while True:
-        print("Colab is still active")
-        time.sleep(300)  # Sleep for 5 minutes
+# # Define a function to keep Colab active
+# def keep_colab_active():
+#     while True:
+#         print("Colab is still active")
+#         time.sleep(300)  # Sleep for 5 minutes
 
 # Start the function in a separate thread to keep running in the background
-import threading
-threading.Thread(target=keep_colab_active).start()
+# import threading
+# threading.Thread(target=keep_colab_active).start()
 
 def get_bot_user_id():
     """
