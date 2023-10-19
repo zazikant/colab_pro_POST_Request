@@ -72,9 +72,9 @@ def get_response():
     text = request.args.get("text")
 
     # Extract the email from the text
-    username, response = draft_email(text)
+    email, response = draft_email(text)
 
-    return jsonify({"username": username, "response": response})
+    return jsonify({"email": email, "response": response})
 
 @app.event("app_mention")
 def handle_mentions(body, say):
@@ -85,9 +85,9 @@ def handle_mentions(body, say):
     text = text.replace(mention, "").strip()
 
     # Process the text using your custom function
-    username, response = draft_email(text)
+    email, response = draft_email(text)
 
-    say(f"Sure, I'll get right on that! @{username}: {response}")
+    say(f"Sure, I'll get right on that! @{email}: {response}")
 
 
 # @app.event("app_mention")
