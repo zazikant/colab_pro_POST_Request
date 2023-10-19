@@ -62,17 +62,8 @@ def get_bot_user_id():
 
 
 def my_function(text):
-    """
-    Custom function to process the text and return a response.
-    In this example, the function converts the input text to uppercase.
-
-    Args:
-        text (str): The input text to process.
-
-    Returns:
-        str: The processed text.
-    """
-    response = text.upper()
+    """Custom function to process the text and return a response."""
+    response = text  # No modification to the text
     return response
 
 @flask_app.route("/get_response", methods=["GET"])
@@ -94,13 +85,9 @@ def handle_mentions(body, say):
     text = text.replace(mention, "").strip()
 
     # Process the text using your custom function
-    response = my_function(text)
+    username, response = draft_email(text)
 
-    say("Sure, I'll get right on that!")
-
-    # Respond to the Slack channel
-    say(response)
-
+    say(f"Sure, I'll get right on that! @{username}: {response}")
 
 
 # @app.event("app_mention")
