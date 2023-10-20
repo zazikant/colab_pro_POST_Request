@@ -11,7 +11,6 @@ import time
 
 from flask_ngrok import run_with_ngrok
 from flask import Flask, render_template, request
-from flask import jsonify
 
 import torch
 from diffusers import StableDiffusionPipeline
@@ -62,88 +61,68 @@ def get_bot_user_id():
 
 
 def my_function(text):
-    """Custom function to process the text and return a response."""
-    response = text  # No modification to the text
+    """
+    Custom function to process the text and return a response.
+    In this example, the function converts the input text to uppercase.
+
+    Args:
+        text (str): The input text to process.
+
+    Returns:
+        str: The processed text.
+    """
+    response = text.upper()
     return response
 
-@flask_app.route("/get_response", methods=["GET"])
-def get_response():
-    """Endpoint for fetching response based on the draft_email function."""
-    text = request.args.get("text")
-
-    # Extract the email from the text
-    email, response = draft_email(text)
-
-    return jsonify({"email": email, "response": response})
 
 @app.event("app_mention")
 def handle_mentions(body, say):
-    """Event listener for mentions in Slack."""
+    """
+    Event listener for mentions in Slack.
+    When the bot is mentioned, this function processes the text and sends a response.
+
+    Args:
+        body (dict): The event data received from Slack.
+        say (callable): A function for sending a response to the channel.
+    """
     text = body["event"]["text"]
 
     mention = f"<@{SLACK_BOT_USER_ID}>"
     text = text.replace(mention, "").strip()
 
-    # Process the text using your custom function
+    say("Sure, I'll get right on that!")
+    # response = my_function(text)
+    
+    # Extract the email from the text
     email, response = draft_email(text)
-
-    say(f"Sure, I'll get right on that! @{email}: {response}")
-
-
-# @app.event("app_mention")
-# def handle_mentions(body, say):
-#     """
-#     Event listener for mentions in Slack.
-#     When the bot is mentioned, this function processes the text and sends a response.
-
-#     Args:
-#         body (dict): The event data received from Slack.
-#         say (callable): A function for sending a response to the channel.
-#     """
-#     text = body["event"]["text"]
-
-#     mention = f"<@{SLACK_BOT_USER_ID}>"
-#     text = text.replace(mention, "").strip()
-
-#     say("Sure, I'll get right on that!")
-#     # response = my_function(text)
     
-#     # Extract the email from the text
-#     email, response = draft_email(text)
+    # Make the POST request
+    url = "https://hook.us1.make.com/ohyonocw701n4ynie637qcm3roe3yrhn"
+    headers = {"Content-Type": "application/json"}
+    payload = {"email": email, "response": response}
+    data = json.dumps(payload)
+    # data = {"response": response}
     
-#     # Make the POST request
-#     url = "https://hook.us1.make.com/ohyonocw701n4ynie637qcm3roe3yrhn"
-#     headers = {"Content-Type": "application/json"}
-#     payload = {"email": email, "response": response}
-#     data = json.dumps(payload)
-#     # data = {"response": response}
+    # post_response = requests.post(url, headers=headers, json=data)
     
-#     # post_response = requests.post(url, headers=headers, json=data)
-    
-#     post_response = requests.post(url, headers=headers, data=data)
+    post_response = requests.post(url, headers=headers, data=data)
 
-#     # Check the response status code
-#     if post_response.status_code == 200:
-#         say("POST request successful")
-#     else:
-#         say("POST request failed")
-
-
-# @app.route("/slack/events", methods=["POST"])
-# def slack_events():
-#     """
-#     Route for handling Slack events.
-#     This function passes the incoming HTTP request to the SlackRequestHandler for processing.
-
-#     Returns:
-#         Response: The result of handling the request.
-#     """
-#     return handler.handle(request)
+    # Check the response status code
+    if post_response.status_code == 200:
+        say("POST request successful")
+    else:
+        say("POST request failed")
 
 
 @flask_app.route("/slack/events", methods=["POST"])
 def slack_events():
-    """Route for handling Slack events."""
+    """
+    Route for handling Slack events.
+    This function passes the incoming HTTP request to the SlackRequestHandler for processing.
+
+    Returns:
+        Response: The result of handling the request.
+    """
     return handler.handle(request)
 
 
